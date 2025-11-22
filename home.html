@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ScamGuard - AI-Powered Investment Pitch Analysis</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.9.1/gsap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc; 
+        }
+        .hero-gradient {
+            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+        }
+        
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        #risk-score-circle {
+            stroke-dasharray: 283;
+            stroke-dashoffset: 283;
+            transition: stroke-dashoffset 1.5s ease-out;
+        }
+        /* Tab styling */
+        .tab-btn {
+            cursor: pointer;
+            padding: 0.75rem 1.5rem;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+        .tab-btn.active {
+            border-bottom-color: #3b82f6; 
+            color: #2563eb; 
+            font-weight: 600;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        /* Progress Bar */
+        .progress-bar-container {
+            width: 100%;
+            background-color: #e5e7eb;
+            border-radius: 9999px;
+            overflow: hidden;
+        }
+        .progress-bar {
+            height: 10px;
+            background-color: #3b82f6;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body class="text-slate-800">
+
+    <!-- Header -->
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <svg class="h-8 w-8 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+                <h1 class="text-2xl font-bold text-slate-800">ScamGuard</h1>
+            </div>
+            <div class="hidden md:flex items-center space-x-8">
+                <a href="#how-it-works" class="text-slate-600 hover:text-blue-600 transition">How It Works</a>
+                <a href="#features" class="text-slate-600 hover:text-blue-600 transition">Features</a>
+                <a href="#about" class="text-slate-600 hover:text-blue-600 transition">About</a>
+            </div>
+            <a href="#analyzer" class="hidden md:block bg-blue-600 text-white px-5 py-2 rounded-lg font-semibold hover:bg-blue-700 transition shadow">Get Started</a>
+        </nav>
+    </header>
+
+    <!-- Main Content -->
+    <main>
+        <!-- Hero Section -->
+        <section class="hero-gradient text-white">
+            <div class="container mx-auto px-6 py-20 md:py-32 text-center">
+                <h2 class="text-4xl md:text-6xl font-bold mb-4 leading-tight">Invest with Confidence.</h2>
+                <p class="text-lg md:text-xl text-blue-100 max-w-3xl mx-auto mb-10">
+                    ScamGuard uses advanced AI to analyze investment pitches for red flags, providing you with a simple risk score and clear explanations to protect your capital.
+                </p>
+                <a href="#analyzer" class="bg-white text-blue-600 px-8 py-4 rounded-lg font-bold text-lg hover:bg-slate-100 transition shadow-lg">Analyze a Pitch Now</a>
+            </div>
+        </section>
+
+        <!-- Analyzer Section -->
+        <section id="analyzer" class="py-20 bg-white">
+            <div class="container mx-auto px-6">
+                <div class="max-w-4xl mx-auto">
+                    <h3 class="text-3xl font-bold text-center mb-4">Investment Pitch Analyzer</h3>
+                    <p class="text-slate-600 text-center mb-8 max-w-2xl mx-auto">
+                        Choose your input method. Paste text or upload an image of a pitch from an email, website, or social media post.
+                    </p>
+                    
+                    <!-- Tabs -->
+                    <div class="border-b border-slate-200 flex justify-center mb-6">
+                        <button id="text-tab-btn" class="tab-btn active">Analyze Text</button>
+                        <button id="image-tab-btn" class="tab-btn">Analyze Image</button>
+                    </div>
+
+                    <!-- Text Tab Content -->
+                    <div id="text-tab-content" class="tab-content active">
+                         <div class="bg-slate-50 p-6 rounded-xl shadow-inner">
+                            <textarea id="pitch-text" class="w-full h-48 p-4 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" placeholder="Example: 'Guaranteed 50% returns in just one week! This is a once-in-a-lifetime opportunity you can't miss. Limited spots available, invest now!'"></textarea>
+                            <div id="error-message" class="text-red-500 mt-2 hidden">Please paste some text to analyze.</div>
+                            <button id="analyze-text-button" class="mt-4 w-full bg-blue-600 text-white py-3 rounded-lg font-semibold text-lg hover:bg-blue-700 transition shadow focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                <span id="button-text">Analyze Pitch</span>
+                                <div id="button-loader" class="loader mx-auto hidden" style="width:24px; height:24px; border-width: 2px;"></div>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Image Tab Content -->
+                    <div id="image-tab-content" class="tab-content">
+                         <div class="bg-slate-50 p-6 rounded-xl shadow-inner text-center">
+                            <input type="file" id="image-upload" class="hidden" accept="image/*">
+                            <label for="image-upload" class="cursor-pointer border-2 border-dashed border-slate-400 rounded-lg p-10 flex flex-col items-center justify-center hover:bg-slate-100 hover:border-blue-500 transition">
+                                <svg class="h-12 w-12 text-slate-500 mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                                <span class="font-semibold text-blue-600">Choose an image</span>
+                                <span class="text-slate-500 text-sm">or drag and drop</span>
+                            </label>
+                            <div id="image-preview-container" class="mt-4 hidden">
+                                <img id="image-preview" class="max-h-64 mx-auto rounded-lg shadow-md" alt="Image preview"/>
+                            </div>
+                            <div id="ocr-status-container" class="mt-4 hidden text-left">
+                                <p id="ocr-status-text" class="text-sm font-medium text-slate-700 mb-1"></p>
+                                <div class="progress-bar-container">
+                                    <div id="ocr-progress-bar" class="progress-bar"></div>
+                                </div>
+                            </div>
+                             <div id="image-error-message" class="text-red-500 mt-2 hidden">Please select an image to analyze.</div>
+                            <button id="analyze-image-button" class="mt-4 w-full bg-blue-600 text-white py-3 rounded-lg font-semibold text-lg hover:bg-blue-700 transition shadow focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" disabled>
+                                Analyze Image
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Results Section -->
+                <div id="results-section" class="mt-12 max-w-4xl mx-auto hidden">
+                </div>
+            </div>
+        </section>
+    </main>
+    <footer class="bg-slate-800 text-slate-300">   
+    </footer>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const textTabBtn = document.getElementById('text-tab-btn');
+            const imageTabBtn = document.getElementById('image-tab-btn');
+            const textTabContent = document.getElementById('text-tab-content');
+            const imageTabContent = document.getElementById('image-tab-content');
+
+            const analyzeTextButton = document.getElementById('analyze-text-button');
+            const pitchText = document.getElementById('pitch-text');
+            const errorMessage = document.getElementById('error-message');
+            const buttonText = document.getElementById('button-text');
+            const buttonLoader = document.getElementById('button-loader');
+            
+            const imageUpload = document.getElementById('image-upload');
+            const imagePreviewContainer = document.getElementById('image-preview-container');
+            const imagePreview = document.getElementById('image-preview');
+            const analyzeImageButton = document.getElementById('analyze-image-button');
+            const imageErrorMessage = document.getElementById('image-error-message');
+            
+            const ocrStatusContainer = document.getElementById('ocr-status-container');
+            const ocrStatusText = document.getElementById('ocr-status-text');
+            const ocrProgressBar = document.getElementById('ocr-progress-bar');
+            
+            const resultsSection = document.getElementById('results-section');
+            
+            // Tab Logic 
+            textTabBtn.addEventListener('click', () => switchTab('text'));
+            imageTabBtn.addEventListener('click', () => switchTab('image'));
+
+            function switchTab(tab) {
+                if (tab === 'text') {
+                    textTabBtn.classList.add('active');
+                    imageTabBtn.classList.remove('active');
+                    textTabContent.classList.add('active');
+                    imageTabContent.classList.remove('active');
+                } else {
+                    textTabBtn.classList.remove('active');
+                    imageTabBtn.classList.add('active');
+                    textTabContent.classList.remove('active');
+                    imageTabContent.classList.add('active');
+                }
+                resultsSection.classList.add('hidden');
+            }
+
+            // Text Analysis Logic
+            analyzeTextButton.addEventListener('click', () => {
+                if (pitchText.value.trim() === '') {
+                    errorMessage.classList.remove('hidden');
+                    return;
+                }
+                errorMessage.classList.add('hidden');
+                resultsSection.classList.add('hidden');
+
+                buttonText.classList.add('hidden');
+                buttonLoader.classList.remove('hidden');
+                analyzeTextButton.disabled = true;
+                
+                setTimeout(() => {
+                    buttonText.classList.remove('hidden');
+                    buttonLoader.classList.add('hidden');
+                    analyzeTextButton.disabled = false;
+                    displayResults(pitchText.value);
+                }, 2500);
+            });
+
+            // Image Analysis Logic
+            imageUpload.addEventListener('change', (event) => {
+                const file = event.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        imagePreview.src = e.target.result;
+                        imagePreviewContainer.classList.remove('hidden');
+                        analyzeImageButton.disabled = false;
+                        imageErrorMessage.classList.add('hidden');
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+
+            analyzeImageButton.addEventListener('click', async () => {
+                const file = imageUpload.files[0];
+                if (!file) {
+                    imageErrorMessage.classList.remove('hidden');
+                    return;
+                }
+                resultsSection.classList.add('hidden');
+                analyzeImageButton.disabled = true;
+                analyzeImageButton.textContent = 'Analyzing...';
+                ocrStatusContainer.classList.remove('hidden');
+                const worker = await Tesseract.createWorker('eng', 1, {
+                    logger: m => {
+                        if (m.status === 'recognizing text') {
+                            ocrStatusText.textContent = `Recognizing Text... (${(m.progress * 100).toFixed(0)}%)`;
+                            ocrProgressBar.style.width = `${m.progress * 100}%`;
+                        } else {
+                             ocrStatusText.textContent = m.status.charAt(0).toUpperCase() + m.status.slice(1) + '...';
+                        }
+                    }
+                });
+                
+                try {
+                    // The worker is already initialized, so we can directly recognize.
+                    const { data: { text } } = await worker.recognize(file);
+                    displayResults(text);
+                } catch(err) {
+                    console.error(err);
+                    ocrStatusText.textContent = "Sorry, something went wrong during analysis.";
+                } finally {
+                    await worker.terminate();
+                    analyzeImageButton.disabled = false;
+                    analyzeImageButton.textContent = 'Analyze Image';
+                    setTimeout(() => { // Hide progress bar after a short delay
+                       ocrStatusContainer.classList.add('hidden');
+                    }, 2000);
+                }
+            });
+            
+            
+            function displayResults(text) {
+                const riskScoreText = document.getElementById('risk-score-text');
+                const riskLevelText = document.getElementById('risk-level-text');
+                const riskScoreCircle = document.getElementById('risk-score-circle');
+                const analysisSummary = document.getElementById('analysis-summary');
+                const redFlagsList = document.getElementById('red-flags-list');
+                
+                let score = 20;
+                const detectedFlags = [];
+                const flags = {
+                    guarantee: { keywords: ['guaranteed', 'no risk', 'risk-free', 'certain return'], score: 35, title: "Promise of Guaranteed Returns", description: "Legitimate investments always carry some level of risk. Promises of guaranteed high returns are a classic hallmark of scams." },
+                    urgency: { keywords: ['act now', 'limited time', 'don\'t miss out', 'today only', 'urgent'], score: 25, title: "High-Pressure Tactics", description: "Scammers create a false sense of urgency to prevent you from thinking carefully or consulting with others before investing." },
+                    vague: { keywords: ['secret formula', 'exclusive method', 'proprietary technology', 'unique algorithm'], score: 20, title: "Vague or Secretive Strategy", description: "A lack of clear, transparent information about how the investment works is a major red flag. If it's too complex to understand, be wary." },
+                    hype: { keywords: ['once-in-a-lifetime', 'get rich quick', 'life-changing', 'massive profits'], score: 15, title: "Sensational and Emotional Language", description: "The pitch relies on hype and appeals to emotion rather than providing concrete data and a solid business plan." }
+                };
+                
+                for(const flag in flags) {
+                    if (flags[flag].keywords.some(keyword => text.toLowerCase().includes(keyword))) {
+                        score += flags[flag].score;
+                        detectedFlags.push(flags[flag]);
+                    }
+                }
+                score = Math.min(score, 98);
+                
+                // This section would be where your actual results display logic lives.
+                console.log('--- Analysis Results ---');
+                console.log(`Text Analyzed: "${text}"`);
+                console.log(`Final Score: ${score}`);
+                console.log('Flags:', detectedFlags);
+                
+                if (!document.getElementById('analysis-summary')) { 
+                    resultsSection.innerHTML = `
+                     <h4 class="text-2xl font-bold text-center mb-6">Analysis Complete</h4>
+                    <div class="bg-white p-8 rounded-xl shadow-lg border border-slate-200 grid md:grid-cols-3 gap-8 items-center">
+                        <div class="md:col-span-1 flex flex-col items-center justify-center">
+                            <p class="font-bold text-slate-700 mb-2">Overall Risk Score</p>
+                            <div class="relative w-40 h-40">
+                                <svg class="w-full h-full" viewBox="0 0 100 100">
+                                    <circle class="text-slate-200" stroke-width="10" stroke="currentColor" fill="transparent" r="45" cx="50" cy="50" />
+                                    <circle id="risk-score-circle" class="text-red-500" stroke-width="10" stroke-linecap="round" stroke="currentColor" fill="transparent" r="45" cx="50" cy="50" transform="rotate(-90 50 50)" />
+                                </svg>
+                                <div id="risk-score-text" class="absolute inset-0 flex items-center justify-center text-4xl font-bold text-slate-800"></div>
+                            </div>
+                            <div id="risk-level-text" class="mt-2 text-xl font-semibold"></div>
+                        </div>
+                        <div class="md:col-span-2">
+                             <h5 class="font-bold text-lg mb-3">Key Findings:</h5>
+                            <p id="analysis-summary" class="text-slate-600 mb-6"></p>
+                            <h5 class="font-bold text-lg mb-3">Detected Red Flags:</h5>
+                            <div id="red-flags-list" class="space-y-4"></div>
+                        </div>
+                    </div>
+                    `;
+                }
+
+                 populateResults(text, score, detectedFlags);
+            }
+            
+            function populateResults(text, score, detectedFlags){
+                const riskScoreText = document.getElementById('risk-score-text');
+                const riskLevelText = document.getElementById('risk-level-text');
+                const riskScoreCircle = document.getElementById('risk-score-circle');
+                const analysisSummary = document.getElementById('analysis-summary');
+                const redFlagsList = document.getElementById('red-flags-list');
+                
+                riskScoreText.textContent = score;
+                let riskLevel, colorClass;
+                if (score < 40) { riskLevel = "Low Risk"; colorClass = "text-green-500"; }
+                else if (score < 70) { riskLevel = "Medium Risk"; colorClass = "text-yellow-500"; }
+                else { riskLevel = "High Risk"; colorClass = "text-red-500"; }
+                
+                riskLevelText.textContent = riskLevel;
+                riskLevelText.className = `mt-2 text-xl font-semibold ${colorClass}`;
+                riskScoreCircle.className.baseVal = `text-red-500 ${colorClass}`; // Update SVG color
+                
+                const circumference = 2 * Math.PI * 45;
+                const offset = circumference - (score / 100) * circumference;
+                riskScoreCircle.style.strokeDashoffset = offset;
+                
+                analysisSummary.textContent = detectedFlags.length > 0 ? `Our analysis identified ${detectedFlags.length} potential red flag(s). Please review these findings carefully.` : "Our analysis did not detect common high-risk phrases. However, always exercise due diligence.";
+                redFlagsList.innerHTML = '';
+                 if(detectedFlags.length > 0){
+                    detectedFlags.forEach(flag => {
+                        const flagElement = document.createElement('div');
+                        flagElement.className = 'flex items-start';
+                        flagElement.innerHTML = `<div class="flex-shrink-0"><svg class="h-6 w-6 text-red-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg></div><div class="ml-3"><h6 class="font-semibold">${flag.title}</h6><p class="text-slate-600 text-sm">${flag.description}</p></div>`;
+                        redFlagsList.appendChild(flagElement);
+                    });
+                } else {
+                    const noFlagElement = document.createElement('div');
+                    noFlagElement.innerHTML = `<div class="flex items-start text-green-700"><div class="flex-shrink-0"><svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></div><div class="ml-3"><h6 class="font-semibold">No Common Red Flags Detected</h6><p class="text-slate-600 text-sm">Continue to be cautious and consider professional advice.</p></div></div>`;
+                    redFlagsList.appendChild(noFlagElement);
+                }
+
+                resultsSection.classList.remove('hidden');
+                gsap.from(resultsSection, { duration: 0.7, y: 50, opacity: 0, ease: 'power3.out' });
+                resultsSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+
+            // GSAP Animations
+            gsap.from('.hero-gradient h2', { duration: 1, y: 30, opacity: 0, ease: 'power3.out' });
+            gsap.from('.hero-gradient p', { duration: 1, y: 30, opacity: 0, ease: 'power3.out', delay: 0.3 });
+            gsap.from('.hero-gradient a', { duration: 1, y: 30, opacity: 0, ease: 'power3.out', delay: 0.6 });
+        });
+    </script>
+</body>
+</html>
+
