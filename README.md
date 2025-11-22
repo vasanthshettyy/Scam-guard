@@ -1,7 +1,5 @@
 # ScamGuard - AI-Powered Investment Pitch Analyzer
 
-![ScamGuard Logo](pitch1.png)
-
 ScamGuard is a web application that helps investors analyze investment pitches for potential scams or red flags using AI. The tool can process both text and image inputs, making it easy to evaluate investment opportunities from various sources.
 
 ## Features
